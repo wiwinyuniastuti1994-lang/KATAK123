@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Katak Interaktif IPAS</title>
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --water: #29B6F6;
+            --water-dark: #0288D1;
+            --text-light: #FFFFFF;
+            --text-dark: #333333;
+            --pad-color: #81C784;
+            --pad-hover: #A5D6A7;
+            --sky-day: linear-gradient(to bottom, #81D4FA, #E1F5FE);
+            --sky-rain: linear-gradient(to bottom, #546E7A, #CFD8DC);
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-main);
+            background: #2E7D32;
+        }
+
+        /* --- GLOBAL UI CONTROLS --- */
+        .controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-control {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--primary-dark);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+
+        .btn-control:hover {
+            transform: scale(1.1);
+            background: white;
+        }
+
+        /* --- SCREENS --- */
+        .screen {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* --- MENU SCREEN --- */
+        #menu-screen {
+            background: var(--sky-day);
+            background-size: cover;
+            text-align: center;
+        }
+
+        .menu-content {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 4px solid var(--primary);
+            max-width: 90%;
+        }
+
+        .logo-img {
+            font-size: 80px;
+            animation: bounce 2s infinite;
+        }
+
+        h1 {
+            color: var(--primary-dark);
+            font-size: 2.5rem;
+            margin: 10px 0;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.8);
+        }
+
+        h2 {
+            color: var(--water-dark);
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .creator {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .mode-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-mode {
+            background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            width: 250px;
+            box-shadow: 0 6px 0 #1B5E20;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-mode:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #1B5E20;
+        }
+
+        .btn-mode:hover::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shine 0.5s forwards;
+        }
+
+        /* --- GAME SCREEN --- */
+        #game-screen {
+            flex-direction: row; /* For split screen */
+            background: #111;
+        }
+
+        .player-board {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            border-right: 3px solid rgba(255,255,255,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--sky-day);
+            transition: background 1s ease;
+        }
+
+        .player-board:last-child {
+            border-right: none;
+        }
+
+        .player-board.rainy {
+            background: var(--sky-rain);
+        }
+
+        /* Top HUD */
+        .hud {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 10;
+        }
+
+        .player-title { color: #FFD54F; }
+
+        /* Question Area */
+        .question-box {
+            background: white;
+            margin: 15px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-bottom: 5px solid var(--primary);
+            z-index: 10;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Environment / Game Area */
+        .env-area {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 120px;
+        }
+
+        .pond {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(to bottom, var(--water), var(--water-dark));
+            z-index: 1;
+        }
+
+        .water-ripple {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            animation: ripple 2s infinite linear;
+        }
+
+        /* Pads Layout */
+        .pads-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 5;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .pad-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .pad {
+            background: var(--pad-color);
+            border: 4px solid var(--primary-dark);
+            border-radius: 50px;
+            padding: 15px 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 0 var(--primary-dark), 0 15px 10px rgba(0,0,0,0.3);
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 80%;
+            max-width: 250px;
+            min-height: 60px;
+            font-size: 1.1rem;
+        }
+
+        /* Mobile specific pad size */
+        @media (max-width: 768px) {
+            .pad { font-size: 0.9rem; padding: 10px; min-height: 50px; }
+            h1 { font-size: 1.8rem; }
+            .btn-mode { width: 200px; font-size: 1.2rem; }
+            .question-box { font-size: 1rem; padding: 10px; margin: 5px; }
+        }
+
+        .pad::before {
+            content: '';
+            position: absolute;
+            width: 20%;
+            height: 20px;
+            background: var(--sky-day);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            top: -4px;
+            left: 40%;
+            border: 4px solid var(--primary-dark);
+            border-top: none;
+        }
+
+        .pad:hover {
+            background: var(--pad-hover);
+            transform: translateY(-5px);
+            box-shadow: 0 13px 0 var(--primary-dark), 0 20px 15px rgba(0,0,0,0.3), 0 0 15px rgba(255,255,255,0.5);
+        }
+
+        .pad:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 var(--primary-dark), 0 5px 5px rgba(0,0,0,0.3);
+        }
+
+        .pad.correct-glow {
+            animation: glowGreen 1s forwards;
+        }
+
+        /* Frog */
+        .frog-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            font-size: 60px;
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Effects */
+        .msg-popup {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(255,255,255,0.9);
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: 3px solid #FFC107;
+            font-weight: bold;
+            color: #E65100;
+            z-index: 50;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all 0.3s;
+            width: 80%;
+        }
+
+        .msg-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .drop {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            width: 2px;
+            height: 15px;
+            z-index: 2;
+            animation: fall linear forwards;
+        }
+
+        .heart {
+            position: absolute;
+            color: #E91E63;
+            font-size: 24px;
+            z-index: 30;
+            animation: floatUp 1.5s forwards ease-out;
+        }
+
+        /* Animations */
+        @keyframes shine { 100% { left: 100%; } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes ripple { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
+        @keyframes glowGreen { 0% { background: var(--pad-color); box-shadow: 0 0 0 #fff; } 50% { background: #69F0AE; box-shadow: 0 0 30px #69F0AE; transform: scale(1.1); } 100% { background: var(--pad-color); } }
+        @keyframes fall { to { transform: translateY(100vh); } }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
+        
+        /* Win Screen */
+        #win-screen {
+            background: rgba(0,0,0,0.85);
+            color: white;
+            z-index: 2000;
+            text-align: center;
+        }
+        
+        .win-box {
+            background: linear-gradient(135deg, #FFD54F, #FF9800);
+            padding: 40px;
+            border-radius: 20px;
+            border: 5px solid white;
+            box-shadow: 0 0 50px rgba(255, 213, 79, 0.6);
+            animation: bounce 2s infinite;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px; height: 10px;
+            z-index: 1999;
+            animation: fall linear forwards;
+        }
+
+        /* Responsive Layouts */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #game-screen { flex-direction: column; }
+            .player-board { border-right: none; border-bottom: 3px solid rgba(255,255,255,0.5); }
+            .player-board:last-child { border-bottom: none; }
+            .env-area { padding-bottom: 60px; }
+            .pond { height: 80px; }
+            .frog-container { font-size: 40px; bottom: 10px; }
+            .pads-container { margin-bottom: 5px; gap: 5px; }
+            .pad { padding: 8px; min-height: 40px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Global Controls -->
+    <div class="controls">
+        <button class="btn-control" id="btn-bgm" onclick="toggleBGM()" title="Music">🔇</button>
+        <button class="btn-control" id="btn-fs" onclick="toggleFS()" title="Fullscreen">⛶</button>
+        <button class="btn-control" id="btn-home" onclick="goHome()" title="Home">🏠</button>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="menu-screen" class="screen active">
+        <div class="menu-content">
+            <div class="logo-img">🐸</div>
+            <h1>GAME KATAK INTERAKTIF</h1>
+            <h2>IPAS KELAS 5 SD</h2>
+            <p>Materi: Ekosistem dan Lingkungan</p>
+            <p class="creator">Dibuat oleh: WIWIN YUNIASTUTI</p>
+
+            <div class="mode-container">
+                <button class="btn-mode" onclick="startGame(1)">[ SOLO ]</button>
+                <button class="btn-mode" onclick="startGame(2)">[ DUEL ]</button>
+                <button class="btn-mode" onclick="startGame(3)">[ TRIPLE ]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+        <!-- Player boards will be injected here by JS -->
+    </div>
+
+    <!-- WIN SCREEN -->
+    <div id="win-screen" class="screen">
+        <div class="win-box">
+            <h1 style="color:white; text-shadow:none;">🏆 SELAMAT! 🏆</h1>
+            <p id="win-text" style="font-size: 1.5rem; margin-bottom: 20px;">Katak berhasil mencapai kolam kehidupan.</p>
+            <div style="font-size: 80px;">🐸🎉</div>
+            <br>
+            <button class="btn-mode" onclick="goHome()" style="background: var(--primary);">Main Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- GAME DATA --- */
+        const questionsData = [
+            {
+                q: "Semua makhluk hidup dan benda tak hidup yang saling berinteraksi disebut ....",
+                options: ["A. Populasi", "B. Komunitas", "C. Ekosistem", "D. Habitat"],
+                ans: 2,
+                msg: "Hebat! Katakmu menemukan ekosistem yang sehat."
+            },
+            {
+                q: "Dalam rantai makanan: Rumput → Kelinci → Ular → Elang. Kelinci berperan sebagai ....",
+                options: ["A. Produsen", "B. Konsumen I", "C. Konsumen II", "D. Pengurai"],
+                ans: 1,
+                msg: "Lompatan super!"
+            },
+            {
+                q: "Sumber energi utama bagi kehidupan di bumi adalah ....",
+                options: ["A. Air", "B. Angin", "C. Matahari", "D. Tanah"],
+                ans: 2,
+                msg: "Katak memperoleh energi matahari!"
+            },
+            {
+                q: "Makhluk hidup yang dapat membuat makanan sendiri disebut ....",
+                options: ["A. Konsumen", "B. Pengurai", "C. Produsen", "D. Predator"],
+                ans: 2,
+                msg: "Katak mendapatkan daun energi."
+            },
+            {
+                q: "Berikut yang termasuk upaya menjaga lingkungan adalah ....",
+                options: ["A. Membuang sampah ke sungai", "B. Menebang pohon sembarangan", "C. Membakar sampah plastik", "D. Menanam pohon"],
+                ans: 3,
+                msg: "Katak menanam bibit pohon!"
+            },
+            {
+                q: "Hewan yang memakan tumbuhan disebut ....",
+                options: ["A. Karnivora", "B. Herbivora", "C. Omnivora", "D. Predator"],
+                ans: 1,
+                msg: "Katak bertemu ulat pemakan daun."
+            },
+            {
+                q: "Air hujan yang turun ke bumi merupakan bagian dari ....",
+                options: ["A. Daur hidup", "B. Daur air", "C. Daur makanan", "D. Daur energi"],
+                ans: 1,
+                msg: "Katak mendapat percikan air segar."
+            },
+            {
+                q: "Jika jumlah ular berkurang dalam rantai makanan, kemungkinan yang terjadi adalah ....",
+                options: ["A. Kelinci bertambah", "B. Kelinci berkurang", "C. Rumput habis", "D. Elang bertambah"],
+                ans: 0,
+                msg: "Lompatan cerdas!"
+            },
+            {
+                q: "Salah satu penyebab pemanasan global adalah ....",
+                options: ["A. Menanam pohon", "B. Menghemat listrik", "C. Emisi kendaraan bermotor", "D. Mendaur ulang sampah"],
+                ans: 2,
+                msg: "Katak berhasil menghindari daerah panas."
+            },
+            {
+                q: "Organisme yang bertugas menguraikan sisa makhluk hidup adalah ....",
+                options: ["A. Produsen", "B. Konsumen", "C. Predator", "D. Pengurai"],
+                ans: 3,
+                msg: "SELAMAT! Katak berhasil mencapai kolam kehidupan!"
+            }
+        ];
+
+        /* --- STATE --- */
+        let players = [];
+        let totalLevels = 10;
+        let isBgmPlaying = false;
+
+        /* --- AUDIO SYSTEM (Web Audio API for robust offline playback) --- */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        let bgmOscillators = [];
+        let bgmInterval;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type, duration, vol=0.1) {
+            if(!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playCorrectSound() {
+            initAudio();
+            playTone(440, 'sine', 0.1, 0.2); // A4
+            setTimeout(() => playTone(554.37, 'sine', 0.1, 0.2), 100); // C#5
+            setTimeout(() => playTone(659.25, 'sine', 0.3, 0.2), 200); // E5
+        }
+
+        function playWrongSound() {
+            initAudio();
+            playTone(300, 'sawtooth', 0.2, 0.2);
+            setTimeout(() => playTone(250, 'sawtooth', 0.4, 0.2), 150);
+        }
+
+        function toggleBGM() {
+            initAudio();
+            const btn = document.getElementById('btn-bgm');
+            if (isBgmPlaying) {
+                clearInterval(bgmInterval);
+                isBgmPlaying = false;
+                btn.innerText = '🔇';
+            } else {
+                isBgmPlaying = true;
+                btn.innerText = '🔊';
+                // Simple ambient nature generator
+                bgmInterval = setInterval(() => {
+                    if(Math.random() > 0.6) {
+                        // Water drop / Bird chirp sound
+                        playTone(1500 + Math.random()*1000, 'sine', 0.1, 0.05);
+                        setTimeout(() => playTone(2000 + Math.random()*1000, 'sine', 0.1, 0.05), 100);
+                    }
+                }, 2000);
+            }
+        }
+
+        /* --- FULLSCREEN --- */
+        function toggleFS() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        /* --- NAVIGATION --- */
+        function goHome() {
+            document.getElementById('menu-screen').classList.add('active');
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('win-screen').classList.remove('active');
+            players = [];
+        }
+
+        /* --- GAME LOGIC --- */
+        function startGame(mode) {
+            initAudio();
+            document.getElementById('menu-screen').classList.remove('active');
+            const gameScreen = document.getElementById('game-screen');
+            gameScreen.innerHTML = '';
+            gameScreen.classList.add('active');
+            
+            players = [];
+            for (let i = 0; i < mode; i++) {
+                players.push({
+                    id: i,
+                    name: `Player ${i + 1}`,
+                    score: 0,
+                    level: 0,
+                    isAnimating: false
+                });
+                renderPlayerBoard(i, gameScreen);
+                loadQuestion(i);
+            }
+        }
+
+        function renderPlayerBoard(pid, container) {
+            const p = players[pid];
+            const board = document.createElement('div');
+            board.className = 'player-board';
+            board.id = `board-${pid}`;
+
+            board.innerHTML = `
+                <div class="hud">
+                    <span class="player-title">${p.name}</span>
+                    <span>Level: <span id="lvl-${pid}">1</span>/10</span>
+                    <span>Score: <span id="score-${pid}">0</span></span>
+                </div>
+                <div class="question-box" id="q-${pid}">Memuat soal...</div>
+                
+                <div class="env-area">
+                    <div class="msg-popup" id="msg-${pid}"></div>
+                    
+                    <div class="pads-container">
+                        <div class="pad-row">
+                            <div class="pad" id="pad-${pid}-0" onclick="handleAnswer(${pid}, 0)">A</div>
+                        </div>
+                        <div class="pad-row">
+                            <div class="pad" id="pad-${pid}-1" onclick="handleAnswer(${pid}, 1)">B</div>
+                            <div class="pad" id="pad-${pid}-2" onclick="handleAnswer(${pid}, 2)">C</div>
+                        </div>
+                        <div class="pad-row">
+                            <div class="pad" id="pad-${pid}-3" onclick="handleAnswer(${pid}, 3)">D</div>
+                        </div>
+                    </div>
+
+                    <div class="frog-container" id="frog-${pid}">🐸</div>
+                    <div class="pond">
+                        <div class="water-ripple"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(board);
+        }
+
+        function loadQuestion(pid) {
+            const p = players[pid];
+            if (p.level >= totalLevels) {
+                checkWinCondition();
+                return;
+            }
+
+            const qData = questionsData[p.level];
+            document.getElementById(`lvl-${pid}`).innerText = p.level + 1;
+            document.getElementById(`q-${pid}`).innerText = qData.q;
+            
+            for (let i = 0; i < 4; i++) {
+                const pad = document.getElementById(`pad-${pid}-${i}`);
+                pad.innerText = qData.options[i];
+                pad.style.visibility = 'visible';
+                pad.classList.remove('correct-glow');
+            }
+            
+            // Reset Frog
+            const frog = document.getElementById(`frog-${pid}`);
+            frog.innerText = '🐸';
+            frog.style.transform = 'translateX(-50%) translateY(0)';
+            frog.style.opacity = '1';
+        }
+
+        function handleAnswer(pid, optIndex) {
+            const p = players[pid];
+            if (p.isAnimating || p.level >= totalLevels) return;
+            p.isAnimating = true;
+
+            const qData = questionsData[p.level];
+            const isCorrect = (optIndex === qData.ans);
+            const padEl = document.getElementById(`pad-${pid}-${optIndex}`);
+            const frog = document.getElementById(`frog-${pid}`);
+            const msgBox = document.getElementById(`msg-${pid}`);
+            const board = document.getElementById(`board-${pid}`);
+
+            if (isCorrect) {
+                // Correct logic
+                playCorrectSound();
+                p.score += 10;
+                document.getElementById(`score-${pid}`).innerText = p.score;
+                
+                frog.innerText = '🥳';
+                frog.style.transform = `translateX(-50%) translateY(-200px) scale(1.2)`;
+                padEl.classList.add('correct-glow');
+                
+                spawnHearts(board);
+                
+                msgBox.innerText = qData.msg;
+                msgBox.style.color = '#2E7D32';
+                msgBox.classList.add('show');
+
+                setTimeout(() => {
+                    msgBox.classList.remove('show');
+                    p.level++;
+                    p.isAnimating = false;
+                    loadQuestion(pid);
+                }, 2500);
+
+            } else {
+                // Wrong logic
+                playWrongSound();
+                frog.innerText = '😭';
+                frog.style.transform = `translateX(-50%) translateY(50px) rotate(180deg)`;
+                
+                board.classList.add('rainy');
+                startRain(board);
+
+                msgBox.innerText = "Yah, jawaban salah. Tetap semangat!";
+                msgBox.style.color = '#C62828';
+                msgBox.classList.add('show');
+
+                setTimeout(() => {
+                    msgBox.classList.remove('show');
+                    board.classList.remove('rainy');
+                    stopRain(board);
+                    p.level++; // Continue to next even if wrong based on prompt
+                    p.isAnimating = false;
+                    loadQuestion(pid);
+                }, 3000);
+            }
+        }
+
+        function checkWinCondition() {
+            // Check if all players have finished
+            const allFinished = players.every(p => p.level >= totalLevels);
+            if (allFinished) {
+                setTimeout(() => {
+                    document.getElementById('win-screen').classList.add('active');
+                    spawnConfetti();
+                    playCorrectSound();
+                    setTimeout(playCorrectSound, 500);
+                    
+                    let resultText = '';
+                    if(players.length === 1) {
+                        resultText = `Skor Akhirmu: ${players[0].score}`;
+                    } else {
+                        // Find winner
+                        let maxScore = -1;
+                        let winnerName = "";
+                        players.forEach(p => {
+                            if(p.score > maxScore) { maxScore = p.score; winnerName = p.name; }
+                            else if(p.score === maxScore) { winnerName += " & " + p.name; }
+                        });
+                        resultText = `Pemenang: ${winnerName} (Skor: ${maxScore})`;
+                    }
+                    document.getElementById('win-text').innerText = "Katak berhasil mencapai kolam kehidupan!\n" + resultText;
+                }, 1000);
+            }
+        }
+
+        /* --- VISUAL EFFECTS --- */
+        function spawnHearts(container) {
+            for(let i=0; i<5; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                heart.innerText = '❤️';
+                heart.style.left = (40 + Math.random() * 20) + '%';
+                heart.style.top = (50 + Math.random() * 10) + '%';
+                heart.style.animationDuration = (1 + Math.random()) + 's';
+                container.appendChild(heart);
+                setTimeout(() => heart.remove(), 1500);
+            }
+        }
+
+        function startRain(container) {
+            container.rainInterval = setInterval(() => {
+                const drop = document.createElement('div');
+                drop.className = 'drop';
+                drop.style.left = Math.random() * 100 + '%';
+                drop.style.top = '-20px';
+                drop.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+                container.appendChild(drop);
+                setTimeout(() => drop.remove(), 1000);
+            }, 50);
+        }
+
+        function stopRain(container) {
+            clearInterval(container.rainInterval);
+        }
+
+        function spawnConfetti() {
+            const winScreen = document.getElementById('win-screen');
+            const colors = ['#fce18a', '#ff726d', '#b48def', '#f4306d'];
+            for(let i=0; i<100; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-10px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.animationDuration = (2 + Math.random() * 3) + 's';
+                conf.style.animationDelay = (Math.random() * 2) + 's';
+                winScreen.appendChild(conf);
+            }
+        }
+
+    </script>
+</body>
+</html>
